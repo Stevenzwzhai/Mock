@@ -49,7 +49,7 @@ var Util = require('../util')
 // 备份原生 XMLHttpRequest
 window._XMLHttpRequest = window.XMLHttpRequest
 window._ActiveXObject = window.ActiveXObject
-
+window._fetch = window.fetch
 /*
     PhantomJS
     TypeError: '[object EventConstructor]' is not a constructor (evaluating 'new Event("readystatechange")')
@@ -438,5 +438,25 @@ function convert(item, options) {
     return Util.isFunction(item.template) ?
         item.template(options) : MockXMLHttpRequest.Mock.mock(item.template)
 }
+
+const mockFetch = function() {
+    const args = Array.from(arguments);
+    const url = args.slice(0, 1)[0];
+    const opts = args.slice(1, 2)[0] || {};
+    const type = opts.method || 'get';
+    const item = find({url, type});
+    
+    if (!item) {
+        return window._fetch(...args);
+    } else {
+        const mockData = convert(item, {url, type});
+        const response = new Response(JSON.stringify(mockData));
+        return new Promise(resolve => {
+            resolve(response);
+        });
+    }
+}
+
+window.fetch = mockFetch;
 
 module.exports = MockXMLHttpRequest
